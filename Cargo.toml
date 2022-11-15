@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rustsat = { path = "../rustsat", default-features = false, features = ["multiopt"] }
 
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
