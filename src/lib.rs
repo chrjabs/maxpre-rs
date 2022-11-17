@@ -3,8 +3,13 @@
 //! A Rust interface to the [MaxPre](https://bitbucket.org/coreo-group/maxpre2)
 //! preprocessor for MaxSAT.
 
-use core::ffi::{c_char, c_int, c_uint, CStr};
+use core::{
+    ffi::{c_int, c_uint, CStr},
+    time::Duration,
+};
+use std::ffi::CString;
 
+use cpu_time::ProcessTime;
 use rustsat::{
     instances::CNF,
     types::{Assignment, Clause, Lit, RsHashMap, Var},
@@ -16,8 +21,8 @@ mod ffi;
 pub struct MaxPre {
     /// The handle for the C API
     handle: *mut ffi::CMaxPre,
-    /// The number of objectives in the preprocessor
-    n_obj: usize,
+    /// Statistics of the preprocessor
+    stats: Stats,
 }
 
 impl MaxPre {
@@ -36,27 +41,48 @@ impl MaxPre {
         top = softs.iter().fold(top, |top, softs| {
             softs.iter().fold(top, |top, (_, w)| top + w)
         });
-        let n_obj = softs.len();
+        let mut stats = Stats::default();
+        stats.n_objs = softs.len();
+        stats.n_orig_hard_clauses = hards.n_clauses();
         let handle = unsafe { ffi::cmaxpre_init_start(top as u64, ffi::map_bool(inprocessing)) };
         hards.into_iter().for_each(|cl| {
-            cl.into_iter()
-                .for_each(|l| unsafe { ffi::cmaxpre_init_add_lit(handle, l.to_ipasir()) });
+            cl.into_iter().for_each(|l| {
+                stats.max_orig_var = Self::track_max_var(stats.max_orig_var, l.var());
+                unsafe { ffi::cmaxpre_init_add_lit(handle, l.to_ipasir()) }
+            });
             unsafe { ffi::cmaxpre_init_add_lit(handle, 0) };
         });
         softs.into_iter().enumerate().for_each(|(idx, softs)| {
+            stats.n_orig_soft_clauses.push(softs.len());
             softs.into_iter().for_each(|(cl, w)| {
                 // Add zero weight for all previous objectives
                 (0..idx).for_each(|_| unsafe { ffi::cmaxpre_init_add_weight(handle, 0) });
                 // Add weight for the objective with index
                 unsafe { ffi::cmaxpre_init_add_weight(handle, w as u64) };
                 // Add literals
-                cl.into_iter()
-                    .for_each(|l| unsafe { ffi::cmaxpre_init_add_lit(handle, l.to_ipasir()) });
+                cl.into_iter().for_each(|l| {
+                    stats.max_orig_var = Self::track_max_var(stats.max_orig_var, l.var());
+                    unsafe { ffi::cmaxpre_init_add_lit(handle, l.to_ipasir()) }
+                });
                 unsafe { ffi::cmaxpre_init_add_lit(handle, 0) };
             })
         });
         unsafe { ffi::cmaxpre_init_finalize(handle) };
-        Self { handle, n_obj }
+        Self { handle, stats }
+    }
+
+    /// Tracks a maximum variable
+    fn track_max_var(max_var: Option<Var>, new_var: Var) -> Option<Var> {
+        match max_var {
+            Some(max_var) => {
+                if new_var > max_var {
+                    Some(new_var)
+                } else {
+                    Some(max_var)
+                }
+            }
+            None => Some(new_var),
+        }
     }
 
     /// Performs preprocessing on the internal instance
@@ -67,15 +93,18 @@ impl MaxPre {
         time_limit: f64,
         add_removed_weight: bool,
     ) {
+        let start = ProcessTime::now();
+        let techniques = CString::new(techniques).unwrap();
         unsafe {
             ffi::cmaxpre_preprocess(
                 self.handle,
-                techniques.as_ptr() as *mut c_char,
+                techniques.as_ptr(),
                 log_level,
                 time_limit,
                 ffi::map_bool(add_removed_weight),
             )
         };
+        self.stats.prepro_time += start.elapsed();
     }
 
     /// Gets the top weight of the preprocessor
@@ -99,7 +128,7 @@ impl MaxPre {
     }
 
     /// Gets the preprocessed instance
-    pub fn prepro_instance(&self) -> (CNF, Vec<RsHashMap<Clause, usize>>) {
+    pub fn prepro_instance(&mut self) -> (CNF, Vec<RsHashMap<Clause, usize>>) {
         let n_cls = self.n_prepro_clauses();
         let top = self.top_weight();
         let mut hards = CNF::new();
@@ -113,15 +142,21 @@ impl MaxPre {
                 if lit == 0 {
                     break;
                 }
-                clause.add(Lit::from_ipasir(lit).unwrap());
+                let lit = Lit::from_ipasir(lit).unwrap();
+                self.stats.max_prepro_var =
+                    Self::track_max_var(self.stats.max_prepro_var, lit.var());
+                clause.add(lit);
                 lit_idx += 1;
             }
             // Get weights
             let mut is_hard = true;
-            for obj_idx in 0..self.n_obj {
+            for obj_idx in 0..self.stats.n_objs {
                 let w = unsafe {
                     ffi::cmaxpre_get_prepro_weight(self.handle, cl_idx, obj_idx as c_uint)
                 };
+                if w == 0 {
+                    continue;
+                }
                 if w != top {
                     // Soft clause
                     if softs.len() < obj_idx + 1 {
@@ -136,6 +171,8 @@ impl MaxPre {
                 hards.add_clause(clause);
             }
         }
+        self.stats.n_prepro_hard_clauses = hards.n_clauses();
+        self.stats.n_prepro_soft_clauses = softs.iter().map(|s| s.len()).collect();
         (hards, softs)
     }
 
@@ -175,12 +212,13 @@ impl MaxPre {
     }
 
     /// Reconstructs an assignment
-    pub fn reconstruct(&self, sol: Assignment) -> Assignment {
+    pub fn reconstruct(&mut self, sol: Assignment) -> Assignment {
+        let start = ProcessTime::now();
         sol.into_iter()
             .for_each(|l| unsafe { ffi::cmaxpre_assignment_add(self.handle, l.to_ipasir()) });
         unsafe { ffi::cmaxpre_reconstruct(self.handle) };
         let max_var = self.max_orig_var();
-        (1..max_var.pos_lit().to_ipasir())
+        let rec = (1..max_var.pos_lit().to_ipasir())
             .map(|l| {
                 if unsafe { ffi::cmaxpre_reconstructed_val(self.handle, l) } > 0 {
                     Lit::from_ipasir(l).unwrap()
@@ -188,7 +226,9 @@ impl MaxPre {
                     Lit::from_ipasir(-l).unwrap()
                 }
             })
-            .collect()
+            .collect();
+        self.stats.reconst_time += start.elapsed();
+        rec
     }
 
     /// Adds a new variable to the preprocessor and return the variable
@@ -247,12 +287,13 @@ impl MaxPre {
     }
 
     /// Gets the removed weight
-    pub fn removed_weight(&self) -> Vec<usize> {
-        (0..self.n_obj)
+    pub fn removed_weight(&mut self) -> Vec<usize> {
+        self.stats.removed_weight = (0..self.stats.n_objs)
             .map(|obj_idx| unsafe {
                 ffi::cmaxpre_get_removed_weight(self.handle, obj_idx as c_uint)
             } as usize)
-            .collect()
+            .collect();
+        self.stats.removed_weight.clone()
     }
 
     /// Sets options for the preprocessor
@@ -317,6 +358,11 @@ impl MaxPre {
     pub fn print_stats(&self) {
         unsafe { ffi::cmaxpre_print_preprocessor_stats_stdout(self.handle) }
     }
+
+    /// Gets statistics of the preprocessor
+    pub fn stats(&self) -> Stats {
+        self.stats.clone()
+    }
 }
 
 impl Drop for MaxPre {
@@ -337,6 +383,21 @@ pub struct Options {
     pub max_bbtms_vars: Option<c_int>,
     pub harden_in_model_search: Option<bool>,
     pub model_search_iter_limits: Option<c_int>,
+}
+
+/// Statistics of the MaxPre preprocessor
+#[derive(Clone, PartialEq, Eq, Default)]
+pub struct Stats {
+    pub n_objs: usize,
+    pub n_orig_hard_clauses: usize,
+    pub n_orig_soft_clauses: Vec<usize>,
+    pub max_orig_var: Option<Var>,
+    pub n_prepro_hard_clauses: usize,
+    pub n_prepro_soft_clauses: Vec<usize>,
+    pub removed_weight: Vec<usize>,
+    pub max_prepro_var: Option<Var>,
+    pub prepro_time: Duration,
+    pub reconst_time: Duration,
 }
 
 #[cfg(test)]

@@ -13,7 +13,7 @@ fn main() {
     build_maxpre(
         "git@bitbucket.org:hannesihalainen/maxpre.git",
         "biopt",
-        "bf89bd341826288d1526a33edf8f6c1fe8ba0db6",
+        "8377b1fc318e632dea434a4bc3e3f38f94d88fbd",
         Path::new(&format!("{}/.ssh/id_work", env::var("HOME").unwrap())),
     );
 
@@ -53,14 +53,19 @@ fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) -> bool 
         .into_iter()
         .map(|sf| maxpre_dir.join("src").join(sf));
 
+        // Setup build
+        let mut build = cc::Build::new();
+        build.cpp(true);
+        if env::var("PROFILE").unwrap() == "debug" {
+            build.opt_level(0).define("DEBUG", None).warnings(true).debug(true);
+        } else {
+            build.opt_level(3).define("NDEBUG", None).warnings(false);
+        };
+
         // Build MaxPre
-        cc::Build::new()
-            .cpp(true)
-            .opt_level(3)
-            .define("NDEBUG", None)
+        build
             .include(maxpre_dir.join("src"))
             .define("GIT_IDENTIFIER", Some(&format!("\"{}\"", commit)[..]))
-            .warnings(false)
             .files(src_files)
             .compile("maxpre");
     };
@@ -79,6 +84,8 @@ fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) -> bool 
 /// Returns true if there were changes, false if not
 fn update_repo(path: &Path, url: &str, branch: &str, commit: &str, ssh_key: &Path) -> bool {
     let mut changed = false;
+    let target_oid = git2::Oid::from_str(commit)
+        .unwrap_or_else(|e| panic!("Invalid commit hash {}: {}", commit, e));
     // Prepare SSH auth
     let mut cbs = git2::RemoteCallbacks::new();
     cbs.credentials(|_url, username_from_url, _allowed_types| {
@@ -89,6 +96,12 @@ fn update_repo(path: &Path, url: &str, branch: &str, commit: &str, ssh_key: &Pat
     // Update repo
     let repo = match git2::Repository::open(path) {
         Ok(repo) => {
+            // Check if already at correct commit
+            if let Some(oid) = repo.head().unwrap().target_peel() {
+                if oid == target_oid {
+                    return changed;
+                }
+            };
             // Fetch repo
             let mut remote = repo
                 .find_remote("origin")
@@ -120,13 +133,6 @@ fn update_repo(path: &Path, url: &str, branch: &str, commit: &str, ssh_key: &Pat
             builder
                 .clone(url, path)
                 .unwrap_or_else(|e| panic!("Could not clone repository {}: {}", url, e))
-        }
-    };
-    let target_oid = git2::Oid::from_str(commit)
-        .unwrap_or_else(|e| panic!("Could not find commit {}: {}", commit, e));
-    if let Some(oid) = repo.head().unwrap().target_peel() {
-        if oid == target_oid {
-            return changed;
         }
     };
     let target_commit = repo
