@@ -5,7 +5,7 @@
 use core::ffi::{c_char, c_int, c_uint};
 
 pub const TRUE: c_char = 1;
-pub const FALSE: c_char = 1;
+pub const FALSE: c_char = 0;
 
 #[inline]
 pub fn map_bool(b: bool) -> c_char {

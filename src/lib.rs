@@ -394,8 +394,8 @@ pub struct Stats {
     pub max_orig_var: Option<Var>,
     pub n_prepro_hard_clauses: usize,
     pub n_prepro_soft_clauses: Vec<usize>,
-    pub removed_weight: Vec<usize>,
     pub max_prepro_var: Option<Var>,
+    pub removed_weight: Vec<usize>,
     pub prepro_time: Duration,
     pub reconst_time: Duration,
 }
