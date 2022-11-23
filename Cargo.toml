@@ -6,10 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rustsat = { path = "../rustsat", default-features = false, features = ["multiopt"] }
+rustsat = { path = "../rustsat", default-features = false }
 cpu-time = "1.0"
 
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
 git2 = "0.15"
 glob = "0.3"
+
+[features]
+default = ["optimization"]
+optimization = ["rustsat/optimization"]
+multiopt = ["optimization", "rustsat/multiopt"]
