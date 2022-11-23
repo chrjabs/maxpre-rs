@@ -10,7 +10,7 @@ use core::{
 
 use rustsat::{
     instances::CNF,
-    types::{Assignment, Clause, Lit, RsHashMap, Var},
+    types::{Assignment, Clause, Lit, Var, WClsIter},
 };
 
 mod base;
@@ -33,7 +33,7 @@ pub trait PreproClauses {
     /// Gets the signature of the preprocessor library
     fn signature() -> &'static str;
     /// Initializes a new preprocessor with hard clauses and optional multiple sets of soft clauses.
-    fn new(hards: CNF, softs: Vec<(RsHashMap<Clause, usize>, isize)>, inprocessing: bool) -> Self;
+    fn new<CI: WClsIter>(hards: CNF, softs: Vec<(CI, isize)>, inprocessing: bool) -> Self;
     /// Performs preprocessing on the internal instance
     fn preprocess(&mut self, techniques: &str, log_level: c_int, time_limit: f64);
     /// Gets the top weight of the preprocessor
@@ -45,7 +45,7 @@ pub trait PreproClauses {
     /// Gets the number of fixed literals
     fn n_prepro_fixed_lits(&self) -> c_uint;
     /// Gets the preprocessed instance
-    fn prepro_instance(&mut self) -> (CNF, Vec<(RsHashMap<Clause, usize>, isize)>);
+    fn prepro_instance(&mut self) -> (CNF, Vec<(Vec<(Clause, usize)>, isize)>);
     /// Gets the preprocessed labels
     fn prepro_labels(&self) -> Vec<Lit>;
     /// Gets the set of literals fixed to true by preprocessing

@@ -8,7 +8,7 @@ use std::ffi::CString;
 use cpu_time::ProcessTime;
 use rustsat::{
     instances::CNF,
-    types::{Assignment, Clause, Lit, RsHashMap, Var},
+    types::{Assignment, Clause, Lit, Var, WClsIter},
 };
 
 use super::{ffi, Options, PreproClauses, Stats};
@@ -32,8 +32,12 @@ impl PreproClauses for MaxPre {
             .expect("MaxPre signature returned invalid UTF-8")
     }
 
-    fn new(hards: CNF, softs: Vec<(RsHashMap<Clause, usize>, isize)>, inprocessing: bool) -> Self {
+    fn new<CI: WClsIter>(hards: CNF, softs: Vec<(CI, isize)>, inprocessing: bool) -> Self {
         let mut top = 1;
+        let softs: Vec<(Vec<(Clause, usize)>, isize)> = softs
+            .into_iter()
+            .map(|(cls, ofs)| (cls.into_iter().collect(), ofs))
+            .collect();
         top = softs.iter().fold(top, |top, softs| {
             softs.0.iter().fold(top, |top, (_, w)| top + w)
         });
@@ -104,12 +108,11 @@ impl PreproClauses for MaxPre {
         unsafe { ffi::cmaxpre_get_n_prepro_fixed(self.handle) }
     }
 
-    fn prepro_instance(&mut self) -> (CNF, Vec<(RsHashMap<Clause, usize>, isize)>) {
+    fn prepro_instance(&mut self) -> (CNF, Vec<(Vec<(Clause, usize)>, isize)>) {
         let n_cls = self.n_prepro_clauses();
         let top = self.top_weight();
         let mut hards = CNF::new();
-        let mut softs: Vec<RsHashMap<Clause, usize>> =
-            vec![RsHashMap::default(); self.stats.n_objs];
+        let mut softs: Vec<Vec<(Clause, usize)>> = vec![Default::default(); self.stats.n_objs];
         for cl_idx in 0..n_cls {
             // Get clause
             let mut clause = Clause::new();
@@ -139,7 +142,7 @@ impl PreproClauses for MaxPre {
                     if softs.len() < obj_idx + 1 {
                         softs.resize(obj_idx + 1, Default::default());
                     }
-                    softs[obj_idx].insert(clause.clone(), w as usize);
+                    softs[obj_idx].push((clause.clone(), w as usize));
                     is_hard = false;
                 }
             }
@@ -359,7 +362,11 @@ impl Drop for MaxPre {
 
 #[cfg(test)]
 mod tests {
-    use rustsat::{instances::CNF, lit, types::Lit};
+    use rustsat::{
+        instances::CNF,
+        lit,
+        types::{Clause, Lit},
+    };
 
     use crate::PreproClauses;
 
@@ -369,6 +376,6 @@ mod tests {
     fn construct() {
         let mut cnf = CNF::new();
         cnf.add_binary(lit![0], lit![2]);
-        MaxPre::new(cnf, vec![], true);
+        MaxPre::new::<Vec<(Clause, usize)>>(cnf, vec![], true);
     }
 }
