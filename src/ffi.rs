@@ -35,6 +35,7 @@ extern "C" {
         log_level: c_int,
         time_limit: f64,
         add_removed_weight: c_char,
+        sort_labels_frequency: c_char,
     );
     pub fn cmaxpre_get_top_weight(arg1: *mut CMaxPre) -> u64;
     pub fn cmaxpre_get_n_prepro_clauses(arg1: *mut CMaxPre) -> c_uint;

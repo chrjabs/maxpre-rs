@@ -13,7 +13,7 @@ fn main() {
     build_maxpre(
         "git@bitbucket.org:hannesihalainen/maxpre.git",
         "biopt",
-        "8377b1fc318e632dea434a4bc3e3f38f94d88fbd",
+        "90207c4bb948fa7e7d8b8cd09f1e20941e747dd1",
         Path::new(&format!("{}/.ssh/id_work", env::var("HOME").unwrap())),
     );
 

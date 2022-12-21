@@ -87,6 +87,7 @@ impl PreproClauses for MaxPre {
                 log_level,
                 time_limit,
                 ffi::FALSE,
+                ffi::FALSE,
             )
         };
         self.stats.prepro_time += start.elapsed();
