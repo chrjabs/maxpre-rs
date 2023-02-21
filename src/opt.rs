@@ -2,7 +2,7 @@
 
 use rustsat::{
     encodings::{card, pb},
-    instances::{ManageVars, Objective, OptInstance, SatInstance, CNF},
+    instances::{ManageVars, Objective, OptInstance, SatInstance, Cnf},
     types::constraints::{CardConstraint, PBConstraint},
 };
 
@@ -19,8 +19,8 @@ pub trait PreproOpt: PreproClauses {
     ) -> Self
     where
         VM: ManageVars,
-        CardEnc: FnMut(CardConstraint, &mut dyn ManageVars) -> CNF,
-        PBEnc: FnMut(PBConstraint, &mut dyn ManageVars) -> CNF,
+        CardEnc: FnMut(CardConstraint, &mut dyn ManageVars) -> Cnf,
+        PBEnc: FnMut(PBConstraint, &mut dyn ManageVars) -> Cnf,
         Self: Sized,
     {
         let (constrs, obj) = inst.decompose();
