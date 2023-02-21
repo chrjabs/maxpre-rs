@@ -29,6 +29,14 @@ pub use multiopt::PreproMultiOpt;
 pub use opt::PreproOpt;
 pub use sat::PreproSat;
 
+pub type SoftClauses = Vec<(Clause, usize)>;
+
+/// Errors in MaxPre
+pub enum Error {
+    /// Generic MaxPre Error that is not further specified
+    Generic,
+}
+
 pub trait PreproClauses {
     /// Gets the signature of the preprocessor library
     fn signature() -> &'static str;
@@ -45,7 +53,7 @@ pub trait PreproClauses {
     /// Gets the number of fixed literals
     fn n_prepro_fixed_lits(&self) -> c_uint;
     /// Gets the preprocessed instance
-    fn prepro_instance(&mut self) -> (CNF, Vec<(Vec<(Clause, usize)>, isize)>);
+    fn prepro_instance(&mut self) -> (CNF, Vec<(SoftClauses, isize)>);
     /// Gets the preprocessed labels
     fn prepro_labels(&self) -> Vec<Lit>;
     /// Gets the set of literals fixed to true by preprocessing
@@ -55,17 +63,17 @@ pub trait PreproClauses {
     /// Reconstructs an assignment
     fn reconstruct(&mut self, sol: Assignment) -> Assignment;
     /// Adds a new variable to the preprocessor and return the variable
-    fn add_var(&mut self) -> Result<Var, ()>;
+    fn add_var(&mut self) -> Result<Var, Error>;
     /// Adds a clause to the preprocessor
-    fn add_clause(&mut self, clause: Clause) -> Result<(), ()>;
+    fn add_clause(&mut self, clause: Clause) -> Result<(), Error>;
     /// Adds a label to the preprocessor
-    fn add_label(&mut self, label: Lit, weight: usize) -> Result<Lit, ()>;
+    fn add_label(&mut self, label: Lit, weight: usize) -> Result<Lit, Error>;
     /// Alters the weight of a label
-    fn alter_weight(&mut self, label: Lit, weight: usize) -> Result<(), ()>;
+    fn alter_weight(&mut self, label: Lit, weight: usize) -> Result<(), Error>;
     /// Turns a label into a normal variable
-    fn label_to_var(&mut self, label: Lit) -> Result<(), ()>;
+    fn label_to_var(&mut self, label: Lit) -> Result<(), Error>;
     /// Resets the removed weight
-    fn reset_removed_weight(&mut self) -> Result<(), ()>;
+    fn reset_removed_weight(&mut self) -> Result<(), Error>;
     /// Gets the removed weight
     fn removed_weight(&mut self) -> Vec<usize>;
     /// Sets options for the preprocessor

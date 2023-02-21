@@ -11,6 +11,8 @@ use rustsat::{
     types::{Assignment, Clause, Lit, Var, WClsIter},
 };
 
+use crate::Error;
+
 use super::{ffi, Options, PreproClauses, Stats};
 
 /// The main low-abstraction preprocessor type
@@ -41,9 +43,11 @@ impl PreproClauses for MaxPre {
         top = softs.iter().fold(top, |top, softs| {
             softs.0.iter().fold(top, |top, (_, w)| top + w)
         });
-        let mut stats = Stats::default();
-        stats.n_objs = softs.len();
-        stats.n_orig_hard_clauses = hards.n_clauses();
+        let mut stats = Stats {
+            n_objs: softs.len(),
+            n_orig_hard_clauses: hards.n_clauses(),
+            ..Default::default()
+        };
         let handle = unsafe { ffi::cmaxpre_init_start(top as u64, ffi::map_bool(inprocessing)) };
         hards.into_iter().for_each(|cl| {
             cl.into_iter().for_each(|l| {
@@ -220,51 +224,51 @@ impl PreproClauses for MaxPre {
         rec
     }
 
-    fn add_var(&mut self) -> Result<Var, ()> {
+    fn add_var(&mut self) -> Result<Var, Error> {
         let v = unsafe { ffi::cmaxpre_add_var(self.handle, 0) };
         if v == 0 {
-            return Err(());
+            return Err(Error::Generic);
         }
         Ok(Lit::from_ipasir(v).unwrap().var())
     }
 
-    fn add_clause(&mut self, clause: Clause) -> Result<(), ()> {
+    fn add_clause(&mut self, clause: Clause) -> Result<(), Error> {
         clause.into_iter().for_each(|l| unsafe {
             ffi::cmaxpre_add_lit(self.handle, l.to_ipasir());
         });
         if unsafe { ffi::cmaxpre_add_lit(self.handle, 0) } == ffi::FALSE {
-            return Err(());
+            return Err(Error::Generic);
         }
         Ok(())
     }
 
-    fn add_label(&mut self, label: Lit, weight: usize) -> Result<Lit, ()> {
+    fn add_label(&mut self, label: Lit, weight: usize) -> Result<Lit, Error> {
         let l = unsafe { ffi::cmaxpre_add_label(self.handle, label.to_ipasir(), weight as u64) };
         if l == 0 {
-            return Err(());
+            return Err(Error::Generic);
         }
         Ok(Lit::from_ipasir(l).unwrap())
     }
 
-    fn alter_weight(&mut self, label: Lit, weight: usize) -> Result<(), ()> {
+    fn alter_weight(&mut self, label: Lit, weight: usize) -> Result<(), Error> {
         if unsafe { ffi::cmaxpre_alter_weight(self.handle, label.to_ipasir(), weight as u64) }
             == ffi::FALSE
         {
-            return Err(());
+            return Err(Error::Generic);
         }
         Ok(())
     }
 
-    fn label_to_var(&mut self, label: Lit) -> Result<(), ()> {
+    fn label_to_var(&mut self, label: Lit) -> Result<(), Error> {
         if unsafe { ffi::cmaxpre_label_to_var(self.handle, label.to_ipasir()) } == ffi::FALSE {
-            return Err(());
+            return Err(Error::Generic);
         }
         Ok(())
     }
 
-    fn reset_removed_weight(&mut self) -> Result<(), ()> {
+    fn reset_removed_weight(&mut self) -> Result<(), Error> {
         if unsafe { ffi::cmaxpre_reset_removed_weight(self.handle) } == ffi::FALSE {
-            return Err(());
+            return Err(Error::Generic);
         }
         Ok(())
     }

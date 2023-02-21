@@ -22,7 +22,7 @@ fn main() {
     println!("cargo:rustc-link-search={}", out_dir);
 }
 
-fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) -> bool {
+fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let mut maxpre_dir_str = out_dir.clone();
     maxpre_dir_str.push_str("/maxpre");
@@ -57,7 +57,11 @@ fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) -> bool 
         let mut build = cc::Build::new();
         build.cpp(true);
         if env::var("PROFILE").unwrap() == "debug" {
-            build.opt_level(0).define("DEBUG", None).warnings(true).debug(true);
+            build
+                .opt_level(0)
+                .define("DEBUG", None)
+                .warnings(true)
+                .debug(true);
         } else {
             build.opt_level(3).define("NDEBUG", None).warnings(false);
         };
@@ -77,8 +81,6 @@ fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) -> bool 
 
     #[cfg(not(target_os = "macos"))]
     println!("cargo:rustc-flags=-l dylib=stdc++");
-
-    return true;
 }
 
 /// Returns true if there were changes, false if not
