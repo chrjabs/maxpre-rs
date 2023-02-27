@@ -37,6 +37,12 @@ pub enum Error {
     Generic,
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unspecified error")
+    }
+}
+
 pub trait PreproClauses {
     /// Gets the signature of the preprocessor library
     fn signature() -> &'static str;
