@@ -2,7 +2,7 @@
 
 use rustsat::{
     encodings::{card, pb},
-    instances::{ManageVars, SatInstance, Cnf},
+    instances::{Cnf, ManageVars, SatInstance},
     types::{
         constraints::{CardConstraint, PBConstraint},
         Clause,
