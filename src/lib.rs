@@ -66,6 +66,8 @@ pub trait PreproClauses {
     fn prepro_fixed_lits(&self) -> Vec<Lit>;
     /// Gets the maximum original variable
     fn max_orig_var(&self) -> Var;
+    /// Gets the upper bound on the objective found by preprocessing
+    fn upper_bound(&self) -> u64;
     /// Reconstructs an assignment
     fn reconstruct(&mut self, sol: Assignment) -> Assignment;
     /// Adds a new variable to the preprocessor and return the variable

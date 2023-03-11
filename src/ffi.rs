@@ -66,6 +66,7 @@ extern "C" {
     pub fn cmaxpre_set_harden_in_model_search(arg1: *mut CMaxPre, harden: c_char);
     pub fn cmaxpre_set_model_search_iter_limit(arg1: *mut CMaxPre, limit: c_int);
     pub fn cmaxpre_get_original_variables(arg1: *mut CMaxPre) -> c_int;
+    pub fn cmaxpre_get_upper_bound(arg1: *mut CMaxPre) -> u64;
     pub fn cmaxpre_print_instance_stdout(arg1: *mut CMaxPre);
     pub fn cmaxpre_print_solution_stdout(arg1: *mut CMaxPre, weight: u64);
     pub fn cmaxpre_print_map_stdout(arg1: *mut CMaxPre);

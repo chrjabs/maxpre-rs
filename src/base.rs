@@ -205,13 +205,17 @@ impl PreproClauses for MaxPre {
             .var()
     }
 
+    fn upper_bound(&self) -> u64 {
+        unsafe { ffi::cmaxpre_get_upper_bound(self.handle) }
+    }
+
     fn reconstruct(&mut self, sol: Assignment) -> Assignment {
         let start = ProcessTime::now();
         sol.into_iter()
             .for_each(|l| unsafe { ffi::cmaxpre_assignment_add(self.handle, l.to_ipasir()) });
         unsafe { ffi::cmaxpre_reconstruct(self.handle) };
         let max_var = self.max_orig_var();
-        let rec = (1..max_var.pos_lit().to_ipasir())
+        let rec = (1..max_var.pos_lit().to_ipasir() + 1)
             .map(|l| {
                 if unsafe { ffi::cmaxpre_reconstructed_val(self.handle, l) } > 0 {
                     Lit::from_ipasir(l).unwrap()
