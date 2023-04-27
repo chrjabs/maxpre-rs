@@ -10,12 +10,12 @@ build = "build.rs"
 
 [dependencies]
 rustsat = { path = "../rustsat", default-features = false }
-cpu-time = "1.0"
+cpu-time = "1.0.0"
 
 [build-dependencies]
-cc = { version = "1.0", features = ["parallel"] }
-git2 = "0.15"
-glob = "0.3"
+cc = { version = "1.0.79", features = ["parallel"] }
+git2 = "0.17.1"
+glob = "0.3.1"
 
 [features]
 default = ["optimization"]
