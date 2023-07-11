@@ -11,10 +11,9 @@ use std::{
 
 fn main() {
     build_maxpre(
-        "git@bitbucket.org:hannesihalainen/maxpre.git",
-        "biopt",
-        "762e445aa66da70bca852517ada0f3579d271ab0",
-        Path::new(&format!("{}/.ssh/id_work", env::var("HOME").unwrap())),
+        "https://bitbucket.org/coreo-group/maxpre2.git",
+        "master",
+        "7cd387d2b1ca1f72077b0dacd15321aea31ec77c",
     );
 
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -22,12 +21,12 @@ fn main() {
     println!("cargo:rustc-link-search={}", out_dir);
 }
 
-fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) {
+fn build_maxpre(repo: &str, branch: &str, commit: &str) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let mut maxpre_dir_str = out_dir.clone();
     maxpre_dir_str.push_str("/maxpre");
     let maxpre_dir = Path::new(&maxpre_dir_str);
-    if update_repo(maxpre_dir, repo, branch, commit, ssh_key)
+    if update_repo(maxpre_dir, repo, branch, commit)
         || !Path::new(&out_dir).join("libmaxpre.a").exists()
     {
         // Repo changed, rebuild
@@ -84,17 +83,10 @@ fn build_maxpre(repo: &str, branch: &str, commit: &str, ssh_key: &Path) {
 }
 
 /// Returns true if there were changes, false if not
-fn update_repo(path: &Path, url: &str, branch: &str, commit: &str, ssh_key: &Path) -> bool {
+fn update_repo(path: &Path, url: &str, branch: &str, commit: &str) -> bool {
     let mut changed = false;
     let target_oid = git2::Oid::from_str(commit)
         .unwrap_or_else(|e| panic!("Invalid commit hash {}: {}", commit, e));
-    // Prepare SSH auth
-    let mut cbs = git2::RemoteCallbacks::new();
-    cbs.credentials(|_url, username_from_url, _allowed_types| {
-        git2::Cred::ssh_key(username_from_url.unwrap(), None, ssh_key, None)
-    });
-    let mut fos = git2::FetchOptions::new();
-    fos.remote_callbacks(cbs);
     // Update repo
     let repo = match git2::Repository::open(path) {
         Ok(repo) => {
@@ -111,7 +103,7 @@ fn update_repo(path: &Path, url: &str, branch: &str, commit: &str, ssh_key: &Pat
                     panic!("Expected remote \"origin\" in git repo {:?}", path)
                 });
                 remote
-                    .fetch(&[branch], Some(&mut fos), None)
+                    .fetch(&[branch], None, None)
                     .unwrap_or_else(|e| {
                         panic!(
                             "Could not fetch \"origin/{}\" for git repo {:?}: {}",
@@ -133,10 +125,7 @@ fn update_repo(path: &Path, url: &str, branch: &str, commit: &str, ssh_key: &Pat
                 });
             };
             changed = true;
-            let mut builder = git2::build::RepoBuilder::new();
-            builder.fetch_options(fos);
-            builder
-                .clone(url, path)
+            git2::Repository::clone(url, path)
                 .unwrap_or_else(|e| panic!("Could not clone repository {}: {}", url, e))
         }
     };
