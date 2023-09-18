@@ -19,9 +19,9 @@ rustsat = { version = "0.3", path = "../rustsat/rustsat", default-features = fal
 cpu-time = "1.0.0"
 
 [build-dependencies]
-cc = { version = "1.0.79", features = ["parallel"] }
-git2 = "0.17.1"
-glob = "0.3.1"
+cc = { version = "1", features = ["parallel"] }
+git2 = "0"
+glob = "0"
 
 [features]
 default = ["optimization"]

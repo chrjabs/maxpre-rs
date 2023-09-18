@@ -45,7 +45,7 @@ impl PreproClauses for MaxPre {
         });
         let mut stats = Stats {
             n_objs: softs.len(),
-            n_orig_hard_clauses: hards.n_clauses(),
+            n_orig_hard_clauses: hards.len(),
             ..Default::default()
         };
         let handle = unsafe { ffi::cmaxpre_init_start(top as u64, ffi::map_bool(inprocessing)) };
@@ -156,7 +156,7 @@ impl PreproClauses for MaxPre {
                 hards.add_clause(clause);
             }
         }
-        self.stats.n_prepro_hard_clauses = hards.n_clauses();
+        self.stats.n_prepro_hard_clauses = hards.len();
         self.stats.n_prepro_soft_clauses = softs.iter().map(|s| s.len()).collect();
         self.stats.removed_weight.clear();
         let softs = softs

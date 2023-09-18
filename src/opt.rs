@@ -19,8 +19,8 @@ pub trait PreproOpt: PreproClauses {
     ) -> Self
     where
         VM: ManageVars,
-        CardEnc: FnMut(CardConstraint, &mut dyn ManageVars) -> Cnf,
-        PBEnc: FnMut(PBConstraint, &mut dyn ManageVars) -> Cnf,
+        CardEnc: FnMut(CardConstraint, &mut Cnf, &mut dyn ManageVars),
+        PBEnc: FnMut(PBConstraint, &mut Cnf, &mut dyn ManageVars),
         Self: Sized,
     {
         let (constrs, obj) = inst.decompose();
