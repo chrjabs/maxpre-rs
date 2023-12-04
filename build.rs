@@ -102,14 +102,12 @@ fn update_repo(path: &Path, url: &str, branch: &str, commit: &str) -> bool {
                 let mut remote = repo.find_remote("origin").unwrap_or_else(|_| {
                     panic!("Expected remote \"origin\" in git repo {:?}", path)
                 });
-                remote
-                    .fetch(&[branch], None, None)
-                    .unwrap_or_else(|e| {
-                        panic!(
-                            "Could not fetch \"origin/{}\" for git repo {:?}: {}",
-                            branch, path, e
-                        )
-                    });
+                remote.fetch(&[branch], None, None).unwrap_or_else(|e| {
+                    panic!(
+                        "Could not fetch \"origin/{}\" for git repo {:?}: {}",
+                        branch, path, e
+                    )
+                });
                 drop(remote);
             }
             repo

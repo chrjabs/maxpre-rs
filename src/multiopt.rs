@@ -44,7 +44,7 @@ pub trait PreproMultiOpt: PreproClauses {
     /// Gets the preprocessed instance as a [`SatInstance`]
     fn prepro_instance(&mut self) -> MultiOptInstance {
         let (cnf, objs) = <Self as PreproClauses>::prepro_instance(self);
-        let constrs = SatInstance::from_iter(cnf);
+        let constrs = SatInstance::from(cnf);
         let objs = objs
             .into_iter()
             .map(|(softs, offset)| {

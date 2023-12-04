@@ -46,7 +46,7 @@ pub trait PreproSat: PreproClauses {
     fn prepro_instance(&mut self) -> SatInstance {
         let (cnf, objs) = <Self as PreproClauses>::prepro_instance(self);
         debug_assert!(objs.is_empty());
-        SatInstance::from_iter(cnf)
+        SatInstance::from(cnf)
     }
 }
 

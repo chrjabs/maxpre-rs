@@ -45,7 +45,7 @@ pub trait PreproOpt: PreproClauses {
     fn prepro_instance(&mut self) -> OptInstance {
         let (cnf, objs) = <Self as PreproClauses>::prepro_instance(self);
         debug_assert_eq!(objs.len(), 1);
-        let constrs = SatInstance::from_iter(cnf);
+        let constrs = SatInstance::from(cnf);
         let obj = if let Some((softs, offset)) = objs.into_iter().last() {
             let mut obj = Objective::from_iter(softs);
             obj.set_offset(offset);
