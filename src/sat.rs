@@ -26,7 +26,7 @@ pub trait PreproSat: PreproClauses {
         PBEnc: FnMut(PBConstraint, &mut Cnf, &mut dyn ManageVars),
         Self: Sized,
     {
-        let (cnf, _) = inst.as_cnf_with_encoders(card_encoder, pb_encoder);
+        let (cnf, _) = inst.into_cnf_with_encoders(card_encoder, pb_encoder);
         <Self as PreproClauses>::new::<Vec<(Clause, usize)>>(cnf, vec![], inprocessing)
     }
     /// Initializes a new preprocessor from a [`SatInstance`]
@@ -37,8 +37,14 @@ pub trait PreproSat: PreproClauses {
     {
         Self::new_with_encoders(
             inst,
-            card::default_encode_cardinality_constraint,
-            pb::default_encode_pb_constraint,
+            |constr, cnf, vm| {
+                card::default_encode_cardinality_constraint(constr, cnf, vm)
+                    .expect("cardinality encoding ran out of memory")
+            },
+            |constr, cnf, vm| {
+                pb::default_encode_pb_constraint(constr, cnf, vm)
+                    .expect("pb encoding ran out of memory")
+            },
             inprocessing,
         )
     }

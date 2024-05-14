@@ -24,8 +24,8 @@ pub trait PreproOpt: PreproClauses {
         Self: Sized,
     {
         let (constrs, obj) = inst.decompose();
-        let (cnf, _) = constrs.as_cnf_with_encoders(card_encoder, pb_encoder);
-        let softs = obj.as_soft_cls();
+        let (cnf, _) = constrs.into_cnf_with_encoders(card_encoder, pb_encoder);
+        let softs = obj.into_soft_cls();
         <Self as PreproClauses>::new(cnf, vec![softs], inprocessing)
     }
     /// Initializes a new preprocessor from a [`SatInstance`]
@@ -36,8 +36,14 @@ pub trait PreproOpt: PreproClauses {
     {
         Self::new_with_encoders(
             inst,
-            card::default_encode_cardinality_constraint,
-            pb::default_encode_pb_constraint,
+            |constr, cnf, vm| {
+                card::default_encode_cardinality_constraint(constr, cnf, vm)
+                    .expect("cardinality encoding ran out of memory")
+            },
+            |constr, cnf, vm| {
+                pb::default_encode_pb_constraint(constr, cnf, vm)
+                    .expect("pb encoding ran out of memory")
+            },
             inprocessing,
         )
     }
