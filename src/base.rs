@@ -371,11 +371,7 @@ impl Drop for MaxPre {
 
 #[cfg(test)]
 mod tests {
-    use rustsat::{
-        instances::Cnf,
-        lit,
-        types::{Clause, Lit},
-    };
+    use rustsat::{instances::Cnf, lit, types::Clause};
 
     use crate::PreproClauses;
 

@@ -22,6 +22,7 @@ pub struct CMaxPre {
     _unused: [u8; 0],
 }
 
+#[link(name = "maxpre", kind = "static")]
 extern "C" {
     pub fn cmaxpre_signature() -> *const c_char;
     pub fn cmaxpre_init_start(top_weight: u64, inprocess_mode: c_char) -> *mut CMaxPre;

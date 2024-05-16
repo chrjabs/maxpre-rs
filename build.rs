@@ -55,6 +55,7 @@ fn build() {
         "cardinalityconstraint.cpp",
         "satlikeinterface.cpp",
         "cpreprocessorinterface.cpp",
+        "prooflogger.cpp",
         "satsolver/solvers/glucose3/utils/System.cc",
         "satsolver/solvers/glucose3/core/Solver.cc",
     ]
