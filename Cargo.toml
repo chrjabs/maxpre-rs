@@ -1,6 +1,6 @@
 [package]
 name = "maxpre"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 authors = ["Christoph Jabs <christoph.jabs@helsinki.fi>"]
 license = "MIT"
@@ -15,7 +15,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rustsat = { version = "0.5.0", path = "../rustsat", default-features = false }
+rustsat = { version = "0.6.0", path = "../rustsat", default-features = false }
 cpu-time = "1.0.0"
 
 [build-dependencies]
