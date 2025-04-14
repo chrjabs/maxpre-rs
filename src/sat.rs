@@ -4,7 +4,7 @@ use rustsat::{
     encodings::{card, pb},
     instances::{Cnf, ManageVars, SatInstance},
     types::{
-        constraints::{CardConstraint, PBConstraint},
+        constraints::{CardConstraint, PbConstraint},
         Clause,
     },
 };
@@ -23,7 +23,7 @@ pub trait PreproSat: PreproClauses {
     where
         VM: ManageVars,
         CardEnc: FnMut(CardConstraint, &mut Cnf, &mut dyn ManageVars),
-        PBEnc: FnMut(PBConstraint, &mut Cnf, &mut dyn ManageVars),
+        PBEnc: FnMut(PbConstraint, &mut Cnf, &mut dyn ManageVars),
         Self: Sized,
     {
         let (cnf, _) = inst.into_cnf_with_encoders(card_encoder, pb_encoder);
